@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\" />
+    <Folder Include="DataConstraintConfigurations\" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+		<!-- <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.2.4" /> -->
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.2" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.3" />
+		<!-- <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.2.6" /> -->
+		<PackageReference Include="morelinq" Version="3.3.2" />
+		<PackageReference Include="Bogus" Version="33.0.1" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Application\Application.csproj" />
+    <ProjectReference Include="..\..\Domain\Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DocumentationFile>bin\$(Configuration)\DefaultDatabaAccessProvider.xml</DocumentationFile>
+	</PropertyGroup>
+
+</Project>

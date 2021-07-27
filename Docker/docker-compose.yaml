@@ -1,0 +1,70 @@
+version: "3.8"
+
+volumes:
+  postgres-data:
+  infrastructure-data:
+
+# Changes
+# For stagging
+# For testing a application online on a development server
+services:
+
+    docker_frontend:
+        image: userid/frontend
+        ports:
+        - "4200"
+
+    docker_backend_api:
+        image: userid/backend
+        environment:
+            - DefaultConnection
+            - ASPNETCORE_ENVIRONMENT
+            - AUTHORIZATION_TOKEN
+            - HOSTNAME
+            - SOCKET
+            - DO_S3_BUCKET
+            - EMAIL_SERVER
+        ports:
+            - "5000"
+
+    # docker_notification_server:
+    #     image: userid/notification
+    #     # restart: always
+    #     ports:
+    #         - "8880"    
+    #     environment:
+    #         - SECRET=${AUTHORIZATION_TOKEN}
+    #         - Port=8880
+
+    docker_proxy_server:
+        image: userid/nginx
+        # command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+        restart: always
+        ports:
+            - "80:80"
+            #   - "443:443"
+            # volumes:
+            #   - ./data/nginx/conf:/etc/nginx/conf.d
+            #   - ./data/certbot/conf:/etc/letsencrypt
+            #   - ./data/certbot/www:/var/www/certbot
+        depends_on:
+            - docker_backend_api
+            - docker_notification_server
+            - docker_frontend
+
+    # certbot:
+    #   image: certbot/certbot
+    #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    #   volumes:
+    #     - ./data/certbot/conf:/etc/letsencrypt
+    #     - ./data/certbot/www:/var/www/certbot
+
+    # watchtower:
+    #   image: containrrr/watchtower
+    #   volumes:
+    #     - /var/run/docker.sock:/var/run/docker.sock
+    #   command: --interval 30
+
+    # Building api testing jenkins online
+
+  

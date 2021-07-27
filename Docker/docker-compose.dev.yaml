@@ -1,0 +1,81 @@
+version: "3.8"
+
+# For development
+# For full stack developers
+
+services:
+
+  postgres_image:
+    image: postgres:13-alpine
+    networks: 
+      - app_network
+    ports:
+      - 5432:5432
+    # Start the container with a eco_db, and password as the root users password
+    environment: 
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+
+  docker_backend_api:
+    restart: always
+    build:
+      context: ../
+      dockerfile: Source/Dockerfile.dev
+    volumes:
+      - ../Source:/app
+      - /app/Api/bin/
+      - /app/Api/obj/
+      - /app/Application/bin/
+      - /app/Application/obj/
+      - /app/Domain/bin/
+      - /app/Domain/obj/
+      - /app/Providers/ApplicationEmailProvider/bin
+      - /app/Providers/ApplicationEmailProvider/obj
+      - /app/Providers/ApplicationFileProvider/bin
+      - /app/Providers/ApplicationFileProvider/obj
+      - /app/Providers/DefaultDataAccessProvider/bin
+      - /app/Providers/DefaultDataAccessProvider/obj
+    environment:
+      - DEFAULT_DATA_CONTEXT_CONNECTION_STRING=${DEFAULT_DATA_CONTEXT_CONNECTION_STRING}
+      - ASPNETCORE_ENVIRONMENT=Development
+      - AUTHORIZATION_TOKEN=${AUTHORIZATION_TOKEN}
+      - HOSTNAME=${HOSTNAME}
+      - SOCKET=${SOCKET}
+      - DO_S3_BUCKET=${DO_S3_BUCKET}
+      - EMAIL_SERVER=${EMAIL_SERVER}
+    depends_on: 
+      - postgres_image
+    networks: 
+      - app_network
+    ports:
+      - "5000:5000"
+
+  # docker_notification_server:
+  #   build:
+  #     context: ../
+  #     dockerfile: NotificationServer/Dockerfile.dev
+  #   volumes:
+  #     - ../NotificationServer/src:/app/src
+  #     - /app/dist/
+  #   ports:
+  #     - "8882:8880"    
+  #   environment:
+  #     - SECRET=${AUTHORIZATION_TOKEN}
+  #     - Port=8880
+    
+  docker_proxy_server:
+    restart: always
+    build:
+      context: ../
+      dockerfile: ProxyServer/Dockerfile.dev
+    networks: 
+      - app_network
+    ports:
+      - "80:80"
+    depends_on: 
+      - postgres_image
+      - docker_backend_api
+
+networks: 
+  app_network:
