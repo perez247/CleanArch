@@ -14,5 +14,11 @@ namespace Application.Interfaces.IRepositories.DefaultDataAccess
         /// Default Data access authentication priamry for default access but can be used for the application
         /// </summary>
         public IDefaultDataAccessAuthRepository DefaultDataAccessAuthRepository { get; set; }
+
+
+        /// <summary>
+        /// User repository
+        /// </summary>
+        public IDefaultDataAccessUserRepository DefaultDataAccessUserRepository { get; set; }
     }
 }

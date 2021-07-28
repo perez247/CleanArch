@@ -1,4 +1,5 @@
 using Application.Common.CustomAnnotations;
+using Application.Exceptions;
 using Application.Interfaces.IRepositories.DefaultDataAccess;
 using MediatR;
 using System.Net;
@@ -50,9 +51,23 @@ namespace Application.Entities.Authentication.Command.VerifyEmailAddress
         /// <returns></returns>
         public async Task<VerifyemailAddressDto> Handle(VerifyEmailAddressCommand request, CancellationToken cancellationToken)
         {
-            request.Token = WebUtility.UrlDecode(request.Token);
-            var result = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.VerifyEmailAddress(request);
+            // Get user from the database
+            var userFromDB = await _defaultDbUnitOfWork.DefaultDataAccessUserRepository.GetUserById(request.UserId);
 
+            // If user is not one the platform
+            if (userFromDB == null)
+                throw new CustomMessageException($"User is not on the ECO platform");
+
+            if (userFromDB.EmailConfirmed)
+                throw new CustomMessageException($"Email has already been confirmed");
+
+            // Decode url
+            request.Token = WebUtility.UrlDecode(request.Token);
+
+            // Verifying the email
+            var result = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.VerifyEmailAddress(userFromDB, request.Token);
+
+            // Return result
             return new VerifyemailAddressDto { Success = result };
         }
     }

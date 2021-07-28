@@ -17,21 +17,22 @@ namespace Application.Entities.Authentication.Command.SignUpIndividual
         {
             RuleFor(x => x.FirstName)
                 .NotEmpty().WithMessage("First Name is required")
-                .MaximumLength(100).WithMessage("Maximum of 100 chars");
+                .MaximumLength(255).WithMessage("Maximum of 255 chars");
 
             RuleFor(x => x.LastName)
                 .NotEmpty().WithMessage("Last Name is required")
-                .MaximumLength(100).WithMessage("Maximum of 100 chars");
+                .MaximumLength(255).WithMessage("Maximum of 255 chars");
                                     
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage("Password is required")
-                .MinimumLength(6).WithMessage("Min of 6 chars")
-                .MaximumLength(128).WithMessage("Max of 128 chars")
+                .MinimumLength(6).WithMessage("Minimum of 6 chars")
+                .MaximumLength(128).WithMessage("Maximum of 128 chars")
                 .Must(CommonValidations.BeAValidPassword).WithMessage(CommonValidations.ValidPasswordErrorMessage);
 
             RuleFor(x => x.EmailAddress)
                 .NotEmpty().WithMessage("Email is required")
-                .EmailAddress().WithMessage("Invalid email");
+                .EmailAddress().WithMessage("Invalid email")
+                .MaximumLength(255).WithMessage("Maximum of 255 chars");
 
             RuleFor(x => x.EmailAddress)
                 .MustAsync(async (x, email, y) => await _defaultDbAuth.EmailOrUsernameAvailable(x.EmailAddress)).WithMessage(x => $"{x.EmailAddress} has been taken")
@@ -39,7 +40,8 @@ namespace Application.Entities.Authentication.Command.SignUpIndividual
 
             RuleFor(x => x.Username)
                 .NotEmpty().WithMessage("Username is required")
-                .Matches("^[a-zA-Z0-9._]*$").WithMessage("Only letters, numbers, periods and underscorel");
+                .MaximumLength(255).WithMessage("Maximum of 255 chars")
+                .Matches("^[a-zA-Z0-9._]*$").WithMessage("Only letters, numbers, periods and underscore");
 
             RuleFor(x => x.Username)
                 .MustAsync(async (x, email, y) => await _defaultDbAuth.EmailOrUsernameAvailable(x.Username)).WithMessage(x => $"{x.Username} has been taken")

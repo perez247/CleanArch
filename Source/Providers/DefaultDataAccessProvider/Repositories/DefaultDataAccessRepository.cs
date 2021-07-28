@@ -17,19 +17,51 @@ namespace DefaultDataAccessProvider.Repositories
     /// </summary>
     public class DefaultDataAccessRepository : IDefaultDataAccessRepository
     {
-        private IApplicationBuilder _app { get; set; }
-
-        private DefaultDataAccessContext _context { get; set; }
+        private readonly DefaultDataAccessContext _context;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="app"></param>
-        public DefaultDataAccessRepository(IApplicationBuilder app)
+        /// <param name="context"></param>
+        public DefaultDataAccessRepository(DefaultDataAccessContext context)
         {
-            _app = app;
-            var serviceProvider = app.ApplicationServices.CreateScope().ServiceProvider;
-            _context = serviceProvider.GetService<DefaultDataAccessContext>();
+            _context = context;
+        }
+
+        /// <summary>
+        /// Add an item to the database
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public async Task Add<T>(T entity)  where T : class 
+        {
+            await _context.Set<T>().AddAsync(entity);
+        }
+
+        /// <summary>
+        /// Add list of items to the database
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public async Task AddRangeAsync<T>(ICollection<T> entity)  where T : class 
+        {
+            await _context.Set<T>().AddRangeAsync(entity);
+        }
+
+        /// <summary>
+        /// Remove an item from the database
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public void Remove<T>(T entity)  where T : class 
+        {
+            _context.Set<T>().Remove(entity);
+        }
+
+        /// <summary>
+        /// Remove a list of items from the database
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        public void RemoveRange<T>(ICollection<T> entity)  where T : class 
+        {
+            _context.Set<T>().RemoveRange(entity);
         }
 
         /// <summary>

@@ -1,7 +1,10 @@
 using Application.Common.GenericDtos.UserDtoSection;
 using Application.Interfaces.IRepositories.DefaultDataAccess;
 using Application.Interfaces.IServices;
+using Domain.OrganizationSection;
+using Domain.UserSection;
 using MediatR;
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,14 +86,31 @@ namespace Application.Entities.Authentication.Command.SignUpOrganization
         /// <returns></returns>
         public async Task<SignUpUserDto> Handle(SignUpOrganizationCommand request, CancellationToken cancellationToken)
         {
-            var result = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.SignUpOrganization(request);
+            var newOrganization = new Organization(request.EmailAddress)
+            {
+                Email = request.EmailAddress.ToLower(),
+                UserName = request.Username,
+                AgreeToTermsAndCondition = true,
+                Deleted = false,
+                Activated = true,
+                AdditionalDetail = new UserAdditionalDetail()
+                {
+                    OrganizationName = request.Name,
+                    OrganizationType = (OrganizationType)Enum.Parse(typeof(OrganizationType), request.OrganizationType, true),
+                    YearEstablished = request.YearFounded
+                }
+            };
 
-            _emailService.SendVerifyEmailLinkAsync(new EmailServiceData() { User = result.User, Token = result.Token });
+            var userFromDB = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.SignUpOrganization(newOrganization, request.Password);
+
+            var emailServiceData = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.GenerateEmailVerificationToken(userFromDB);
+
+            _emailService.SendVerifyEmailLinkAsync(emailServiceData);
 
             return new SignUpUserDto 
             {
-                UserId = result.User.Id.ToString(),
-                Token = WebUtility.UrlDecode(result.Token)
+                UserId = emailServiceData.User.Id.ToString(),
+                Token = WebUtility.UrlEncode(emailServiceData.Token)
             };        
         }
     }

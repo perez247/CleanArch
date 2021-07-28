@@ -1,5 +1,6 @@
 using Application.Interfaces.IRepositories.DefaultDataAccess;
 using DefaultDataAccessProvider.Repositories;
+using DefaultDataAccessProvider.Repositories.DefaultDataAccessUserSection;
 using DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,8 +20,11 @@ namespace DefaultDataAccessProvider.Common
             // Unit of work for default database
             services.AddScoped<IDefaultDataAccessUnitOfWork, DefaultDataAccessUnitOfWork>();
 
-            // Add Unit of service implementation to contain all repository
+            // Authentication repository
             services.AddScoped<IDefaultDataAccessAuthRepository, DefaultDataAccessAuthRepostory>();
+
+            // User repository
+            services.AddScoped<IDefaultDataAccessUserRepository, DefaultDataAccessUserRepository>();
         }
     }
 }

@@ -1,9 +1,5 @@
-using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Application.Entities.Authentication.Command.SignInUser;
-using Application.Entities.Authentication.Command.SignUpIndividual;
-using Application.Entities.Authentication.Command.SignUpOrganization;
 using Application.Entities.Authentication.Command.VerifyEmailAddress;
 using Application.Exceptions;
 using Application.Interfaces.IRepositories.DefaultDataAccess;
@@ -12,10 +8,8 @@ using DefaultDataAccessProvider.Repositories;
 using Domain.IndividualSection;
 using Domain.OrganizationSection;
 using Domain.UserSection;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection
 {
@@ -50,6 +44,32 @@ namespace DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection
         }
 
         /// <summary>
+        /// Generate token used for verifying the email
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public async Task<EmailServiceData> GenerateEmailVerificationToken(User user) {
+            // Generate token to be used for email verification
+            var Token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            // return data to be used for email service
+            return new EmailServiceData { User = user, Token = Token };
+        }
+
+        /// <summary>
+        /// Generate token used for resseting password
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        public async Task<EmailServiceData> GenerateForgotPasswordToken(User user) {
+            // Generate token to be used for passsword reset
+            var Token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // return data to be used for email service
+            return new EmailServiceData { User = user, Token = Token };
+        }
+
+        /// <summary>
         /// Check if email or usermame has not been taken by another user
         /// </summary>
         /// <param name="usernameOrEmail"></param>
@@ -68,31 +88,16 @@ namespace DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection
         /// <summary>
         /// Sign up an individual into the application
         /// </summary>
-        /// <param name="command"></param>
+        /// <param name="NewIndividual"></param>
+        /// <param name="Password"></param>
         /// <returns></returns>
-        public async Task<EmailServiceData> SignUpIndividual(SignUpIndividualCommand command) {
-            
-            // Instantiate a new Individuak
-            var newIndividual = new Individual(command.EmailAddress)
-            {
-                Email = command.EmailAddress.ToLower(),
-                UserName = command.Username,
-                AgreeToTermsAndCondition = true,
-                Deleted = false,
-                Activated = true,
-                AdditionalDetail = new UserAdditionalDetail()
-                {
-                    FirstName = command.FirstName,
-                    LastName = command.LastName,
-                    DateOfBirth = command.DateOfBirth
-                }
-            };
+        public async Task<Individual> SignUpIndividual(Individual NewIndividual, string Password) {
 
             IdentityResult result;
             // Try saving the user
             try
             {
-                result = await _userManager.CreateAsync(newIndividual, command.Password);
+                result = await _userManager.CreateAsync(NewIndividual, Password);
             }
             catch (System.Exception e)
             {
@@ -103,42 +108,22 @@ namespace DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection
             if (!result.Succeeded)
                 throw new CustomMessageException(result.Errors.First().Description);
 
-            // Generate token to be used for email verification
-            var Token = await _userManager.GenerateEmailConfirmationTokenAsync(newIndividual);
-
-            // var user = _context.Ro
-            // return data to be used for email service
-            return new EmailServiceData { User = newIndividual, Token = Token };
+            return NewIndividual;
         }
 
         /// <summary>
         /// Sign up an organization into the application
         /// </summary>
-        /// <param name="command"></param>
+        /// <param name="NewOrganization"></param>
+        /// <param name="Password"></param>
         /// <returns></returns>
-        public async Task<EmailServiceData> SignUpOrganization(SignUpOrganizationCommand command) {
-            
-            // Instantiate a new organization
-            var newOrganization = new Organization(command.EmailAddress)
-            {
-                Email = command.EmailAddress.ToLower(),
-                UserName = command.Username,
-                AgreeToTermsAndCondition = true,
-                Deleted = false,
-                Activated = true,
-                AdditionalDetail = new UserAdditionalDetail()
-                {
-                    OrganizationName = command.Name,
-                    OrganizationType = (OrganizationType)Enum.Parse(typeof(OrganizationType), command.OrganizationType, true),
-                    YearEstablished = command.YearFounded
-                }
-            };
+        public async Task<Organization> SignUpOrganization(Organization NewOrganization, string Password) {
 
             IdentityResult result;
             // Try saving the user
             try
             {
-                result = await _userManager.CreateAsync(newOrganization, command.Password);
+                result = await _userManager.CreateAsync(NewOrganization, Password);
             }
             catch (System.Exception e)
             {
@@ -149,70 +134,74 @@ namespace DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection
             if (!result.Succeeded)
                 throw new CustomMessageException(result.Errors.First().Description);
 
-            // Generate token to be used for email verification
-            var Token = await _userManager.GenerateEmailConfirmationTokenAsync(newOrganization);
-
-            // var user = _context.Ro
-            // return data to be used for email service
-            return new EmailServiceData { User = newOrganization, Token = Token };
+            return NewOrganization;
         }
 
         /// <summary>
-        /// Sign in a user to the platform
+        /// Resend email verification token used to verify an email
         /// </summary>
-        /// <param name="command"></param>
+        /// <param name="EmailAddressOrUserName"></param>
         /// <returns></returns>
-        public async Task<User> SignInUser(SignInUserCommand command)
+        public async Task<EmailServiceData> ResendEmailVerificationToken(string EmailAddressOrUserName) {
+
+            var userInDb = await _context.Users.Include(x => x.AdditionalDetail)
+                                                        .FirstOrDefaultAsync( u => 
+                                                            u.UserName.ToLower() == EmailAddressOrUserName.ToLower() ||
+                                                            u.Email.ToLower() == EmailAddressOrUserName.ToLower());
+
+            if (userInDb == null)
+                throw new CustomMessageException($"{EmailAddressOrUserName} is not on the ECO platform");
+
+            if (userInDb.EmailConfirmed)
+                throw new CustomMessageException($"{EmailAddressOrUserName} has already been confirmed");
+
+            // Generate token to be used for email verification
+            return await GenerateEmailVerificationToken(userInDb);
+        }  
+
+        /// <summary>
+        /// Check password and lock if failed
+        /// </summary>
+        /// <param name="User"></param>
+        /// <param name="Password"></param>
+        /// <returns></returns>
+        public async Task<bool> CheckPasswordAndLockOn5FailedAttempts(User User, string Password)
         {
-            var user = await _context.Users.Include(x => x.AdditionalDetail)
-                            //  .Include(x => x.UserRoles).ThenInclude(x => x.Role)
-                             .FirstOrDefaultAsync(x => 
-                                    x.Email.ToLower().Equals(command.EmailAddress.ToLower()) ||
-                                    x.UserName.ToLower().Equals(command.EmailAddress.ToLower()) 
-                                    );
-
-            if (user == null)
-                throw new CustomMessageException("Invalid login credentials");
-
-            // If user is currently locked out let them know
-            if (user.LockoutEnd.HasValue && user.LockoutEnd.Value.UtcDateTime.ToUniversalTime() > DateTime.Now.ToUniversalTime())
-                throw new CustomMessageException($"This account has been locked for now");
-
-            if (!await _userManager.CheckPasswordAsync(user, command.Password))
+            if (!await _userManager.CheckPasswordAsync(User, Password))
             {
                 // Increase failed attemptes
-                await _userManager.AccessFailedAsync(user);
+                await _userManager.AccessFailedAsync(User);
 
                 // Throw invalid login agian
-                throw new CustomMessageException("Invalid login credentials");
+                return false;
             }
-            
-            // If email is not confirmed then throw error, user must verify email first
-            if (!user.EmailConfirmed)
-                throw new ConfirmEmailException(user.Email);
-                
-            return user;
-            
+
+            return true;
         }
 
         /// <summary>
         /// Verifies the email addres of the user
         /// </summary>
-        /// <param name="command"></param>
+        /// <param name="User"></param>
+        /// <param name="Token"></param>
         /// <returns></returns>
-        public async Task<bool> VerifyEmailAddress(VerifyEmailAddressCommand command)
+        public async Task<bool> VerifyEmailAddress(User User, string Token)
         {
-            var user = await _userManager.Users
-                                            .Include(u => u.AdditionalDetail)
-                                            .SingleOrDefaultAsync(u => u.Id.ToString() == command.UserId);
+            var result = await _userManager.ConfirmEmailAsync(User, Token);
 
-            if (user == null)
-                return false;
+            return result.Succeeded;
+        }
 
-            if (await _userManager.IsEmailConfirmedAsync(user))
-                throw new CustomMessageException($"{user.Email} has already been verified");
-
-            var result = await _userManager.ConfirmEmailAsync(user, command.Token);
+        /// <summary>
+        /// Change user password with token
+        /// </summary>
+        /// <param name="User"></param>
+        /// <param name="Token"></param>
+        /// <param name="NewPassword"></param>
+        /// <returns></returns>
+        public async Task<bool> ChangePasswordWithToken(User User, string Token, string NewPassword)
+        {
+            var result = await _userManager.ResetPasswordAsync(User, Token, NewPassword);
 
             return result.Succeeded;
         }

@@ -1,6 +1,8 @@
 ﻿using Application.Common.GenericDtos.UserDtoSection;
 using Application.Interfaces.IRepositories.DefaultDataAccess;
 using Application.Interfaces.IServices;
+using Domain.IndividualSection;
+using Domain.UserSection;
 using MediatR;
 using System;
 using System.Net;
@@ -78,15 +80,32 @@ namespace Application.Entities.Authentication.Command.SignUpIndividual
         /// <returns></returns>
         public async Task<SignUpUserDto> Handle(SignUpIndividualCommand request, CancellationToken cancellationToken)
         {
-            var result = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.SignUpIndividual(request);
+            var newIndividual = new Individual(request.EmailAddress)
+            {
+                Email = request.EmailAddress.ToLower(),
+                UserName = request.Username,
+                AgreeToTermsAndCondition = true,
+                Deleted = false,
+                Activated = true,
+                AdditionalDetail = new UserAdditionalDetail()
+                {
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    DateOfBirth = request.DateOfBirth
+                }
+            };
 
-            _emailService.SendVerifyEmailLinkAsync(new EmailServiceData() { User = result.User, Token = result.Token });
+            var userFromDB = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.SignUpIndividual(newIndividual, request.Password);
+
+            var emailServiceData = await _defaultDbUnitOfWork.DefaultDataAccessAuthRepository.GenerateEmailVerificationToken(userFromDB);
+
+            _emailService.SendVerifyEmailLinkAsync(emailServiceData);
 
             return new SignUpUserDto 
             {
-                UserId = result.User.Id.ToString(),
-                Token = WebUtility.UrlDecode(result.Token)
-            };
+                UserId = emailServiceData.User.Id.ToString(),
+                Token = WebUtility.UrlEncode(emailServiceData.Token)
+            };   
         }
     }
 }

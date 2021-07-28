@@ -1,4 +1,5 @@
 using Application.Interfaces.IRepositories.DefaultDataAccess;
+using DefaultDataAccessProvider.Repositories.DefaultDataAccessUserSection;
 using DefaultDatabaseContext.Repositories.DefaultDataAccessAuthSection;
 using Domain.UserSection;
 using Microsoft.AspNetCore.Builder;
@@ -29,7 +30,17 @@ namespace DefaultDataAccessProvider.Repositories
         /// <returns></returns>
         public IDefaultDataAccessAuthRepository DefaultDataAccessAuthRepository { 
             get => new DefaultDataAccessAuthRepostory(_context, _defaultDataAccessUserManager, _defaultDataAccessSignInManager); 
-            set => throw new System.NotImplementedException(); }
+            set => throw new System.NotImplementedException(); 
+        }
+
+        /// <summary>
+        /// User repository
+        /// </summary>
+        /// <returns></returns>
+        public IDefaultDataAccessUserRepository DefaultDataAccessUserRepository { 
+            get => new DefaultDataAccessUserRepository(_context); 
+            set => throw new System.NotImplementedException(); 
+        }
 
         /// <summary>
         /// Constructor

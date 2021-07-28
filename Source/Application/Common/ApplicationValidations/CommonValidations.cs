@@ -17,14 +17,14 @@ namespace ApplicationValidations
             if(string.IsNullOrEmpty(password))
                 return false;
 
-            var validator = new Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{6,}$");
+            var validator = new Regex("^.*(?=.{6,50})(?=.*\\d)(?=.*[A-Za-z]).*$");
             return validator.Match(password).Success;
         }
 
         /// <summary>
         /// Error message to show if the right password is not selected
         /// </summary>
-        public static string ValidPasswordErrorMessage = "lowercase, uppercase, number and min of 6 chars";
+        public static string ValidPasswordErrorMessage = "lowercase, uppercase, number, min 6 and max 50";
 
     }
 }
